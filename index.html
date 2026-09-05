@@ -103,7 +103,6 @@
       flex-direction: column;
     }
 
-    /* Estils del Mapa d'Extrem a Extrem */
     #page-mapa {
       padding: 0;
       margin: 0;
@@ -119,7 +118,6 @@
       padding: 0;
     }
 
-    /* Estils dels Semàfors */
     #page-semafors {
       padding: 1.5rem;
       max-width: 1400px;
@@ -247,7 +245,7 @@
         </div>
 
         <div class="card">
-          <h2>Node 3 - Parc de la Devesa</h2>
+          <h2>Node 3 - Estació de tren</h2>
           <div id="semafor-3" class="semafor"></div>
           <div id="status-3" class="status-text">Carregant dades...</div>
           <div class="metrics">
@@ -273,7 +271,7 @@
     const nodesConfig = [
       { id: 1, channelId: '3434516', readKey: 'AR50VLGBHKZUN4N8', name: 'Node 1 - C/ Joan Miró i Ferrà, 39', lat: 41.993052, lng: 2.802676 },
       { id: 2, channelId: '3434517', readKey: '5XLCIGC3ZXVD80XZ', name: 'Node 2 - Pg. d\'Olot, 92', lat: 41.974739, lng: 2.803252 },
-      { id: 3, channelId: '3434520', readKey: 'BC7DDWROIVT4GM28', name: 'Node 3 - Parc de la Devesa', lat: 41.986800, lng: 2.816500 }
+      { id: 3, channelId: '3434520', readKey: 'BC7DDWROIVT4GM28', name: 'Node 3 - Estació de tren', lat: 41.979058, lng: 2.818208 }
     ];
 
     let map;
@@ -395,7 +393,6 @@
       semafor.style.backgroundColor = propietatsGlobal.color;
       statusText.innerText = propietatsGlobal.text;
 
-      // Actualitzar finestra emergent del Mapa amb el requadre de color dinàmic
       if (markers[nodeId]) {
         markers[nodeId].setPopupContent(`
           <div style="font-size: 0.92rem; line-height: 1.45; min-width: 195px;">
