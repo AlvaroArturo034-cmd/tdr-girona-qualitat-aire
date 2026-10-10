@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de la Xarxa Ambiental IoT de Girona - TdR</title>
+  
+  <!-- Llibreria CSS de Leaflet oficial -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <style>
+    :root {
+      --primary: #1e3a8a;
+      --secondary: #3b82f6;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --orange: #f97316;
+      --red: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    html, body {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    /* PANELL DE CONTROL SUPERIOR (SIMULADOR) */
+    #panell-control {
+      background: #ffffff;
+      border-bottom: 2px solid #cbd5e1;
+      padding: 1rem 1.5rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.06);
+      z-index: 2000;
+      transition: all 0.3s ease;
+    }
+
+    .panell-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.8rem;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+    }
+
+    .panell-header h2 {
+      font-size: 1.15rem;
+      color: var(--primary);
+    }
+
+    .panell-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.8rem;
+      margin-bottom: 0.8rem;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+    }
+
+    .input-group label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+      color: #475569;
+    }
+
+    .input-group input, .input-group select {
+      padding: 0.4rem 0.55rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .input-group input:focus, .input-group select:focus {
+      border-color: var(--secondary);
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.45rem 1rem;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: all 0.2s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background-color: #172554;
+    }
+
+    .btn-secondary {
+      background-color: #64748b;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background-color: #475569;
+    }
+
+    .btn-photo {
+      background-color: #059669;
+      color: white;
+    }
+
+    .btn-photo:hover {
+      background-color: #047857;
+    }
+
+    /* BOTÓ FLOTANT PER RESTAURAR EL PANELL */
+    #btn-mostrar-panell {
+      display: none;
+      position: fixed;
+      top: 15px;
+      right: 15px;
+      background: var(--primary);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: bold;
+      border: 2px solid white;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      z-index: 3000;
+    }
+
+    /* CAPÇALERA WEB */
+    header {
+      background-color: var(--primary);
+      color: white;
+      padding: 0.8rem 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    header h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    nav {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    nav button {
+      background: transparent;
+      border: 2px solid white;
+      color: white;
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: all 0.25s ease;
+    }
+
+    nav button.active, nav button:hover {
+      background-color: white;
+      color: var(--primary);
+    }
+
+    /* VISTES PRINCIPALS */
+    main {
+      flex: 1;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page {
+      display: none;
+      width: 100%;
+      flex: 1;
+    }
+
+    .page.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* VISTA MAPA */
+    #page-mapa {
+      padding: 0;
+      margin: 0;
+      width: 100%;
+    }
+
+    #map {
+      width: 100%;
+      height: 72vh;
+      min-height: 540px;
+      border: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* VISTA SEMÀFORS */
+    #page-semafors {
+      padding: 2rem 1.5rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .grid-nodes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      width: 100%;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+    }
+
+    .card h2 {
+      font-size: 1.2rem;
+      margin-bottom: 0.8rem;
+      color: var(--primary);
+    }
+
+    .semafor {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background-color: #cbd5e1;
+      margin: 0.6rem 0;
+      box-shadow: inset 0 3px 6px rgba(0,0,0,0.25);
+      transition: background-color 0.4s ease;
+    }
+
+    .status-text {
+      font-weight: bold;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      min-height: 24px;
+    }
+
+    .metrics {
+      width: 100%;
+      text-align: left;
+      font-size: 0.9rem;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 0.8rem;
+    }
+
+    .metric-row {
+      margin: 0.5rem 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mini-semafor {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-left: 6px;
+      vertical-align: middle;
+      transition: background-color 0.4s ease;
+    }
+
+    footer {
+      text-align: center;
+      padding: 0.7rem;
+      background: #e2e8f0;
+      font-size: 0.82rem;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PANELL D'EDICIÓ LOCAL (SIMULADOR) -->
+  <div id="panell-control">
+    <div class="panell-header">
+      <h2>⚙️ Panell de Simulació de Dades (Mode Manual)</h2>
+      <div class="btn-group">
+        <button class="btn btn-primary" onclick="guardarValors()">💾 Aplicar Valors</button>
+        <button class="btn btn-secondary" onclick="carregarPreset('net')">🌿 Aire Net</button>
+        <button class="btn btn-secondary" onclick="carregarPreset('pic')">🚗 Pic Trànsit (Taronja)</button>
+        <button class="btn btn-secondary" onclick="carregarPreset('critic')">🚨 Crític (Vermell)</button>
+        <button class="btn btn-photo" onclick="activarModeCaptura()">📸 Mode Captura (Ocultar Panell)</button>
+      </div>
+    </div>
+
+    <div class="panell-grid">
+      <div class="input-group">
+        <label for="sel-node">Seleccionar Estació:</label>
+        <select id="sel-node" onchange="canviarNodeSeleccionat()">
+          <option value="1">Node 1 - C/ Joan Miró</option>
+          <option value="2" selected>Node 2 - Pg. d'Olot</option>
+          <option value="3">Node 3 - Estació de tren</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label for="input-co2">CO₂ (ppm):</label>
+        <input type="number" id="input-co2" value="627" step="1">
+      </div>
+
+      <div class="input-group">
+        <label for="input-pm1">PM 1.0 (µg/m³):</label>
+        <input type="number" id="input-pm1" value="16" step="1">
+      </div>
+
+      <div class="input-group">
+        <label for="input-pm25">PM 2.5 (µg/m³):</label>
+        <input type="number" id="input-pm25" value="24" step="1">
+      </div>
+
+      <div class="input-group">
+        <label for="input-pm10">PM 10 (µg/m³):</label>
+        <input type="number" id="input-pm10" value="25" step="1">
+      </div>
+
+      <div class="input-group">
+        <label for="input-temp">Temperatura (°C):</label>
+        <input type="number" id="input-temp" value="28.5" step="0.1">
+      </div>
+
+      <div class="input-group">
+        <label for="input-hum">Humitat (%):</label>
+        <input type="number" id="input-hum" value="55.6" step="0.1">
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTÓ FLOTANT PER RESTAURAR EL PANELL -->
+  <button id="btn-mostrar-panell" onclick="sortirModeCaptura()">⚙️ Tornar a mostrar el Panell</button>
+
+  <!-- CAPÇALERA -->
+  <header>
+    <h1>Xarxa d'Estacions Ambientals IoT - Girona</h1>
+    <nav>
+      <button id="btn-mapa" class="active" onclick="canviarPagina('mapa')">📍 Mapa de Girona</button>
+      <button id="btn-semafors" onclick="canviarPagina('semafors')">🚦 Semàfors de Qualitat</button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- VISTA 1: MAPA INTERACTIU -->
+    <div id="page-mapa" class="page active">
+      <div id="map"></div>
+    </div>
+
+    <!-- VISTA 2: SEMÀFORS DE QUALITAT -->
+    <div id="page-semafors" class="page">
+      <div class="grid-nodes">
+        
+        <!-- CARD NODE 1 -->
+        <div class="card" id="card-1">
+          <h2>Node 1 - C/ Joan Miró i Ferrà, 39</h2>
+          <div id="semafor-1" class="semafor"></div>
+          <div id="status-1" class="status-text">--</div>
+          <div class="metrics">
+            <div class="metric-row"><span><strong>CO₂:</strong> <span id="co2-1">--</span> ppm</span> <span id="mini-co2-1" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>PM 1.0:</strong> <span id="pm1-1">--</span> µg/m³</span> <span id="mini-pm1-1" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>PM 2.5:</strong> <span id="pm25-1">--</span> µg/m³</span> <span id="mini-pm25-1" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>PM 10:</strong> <span id="pm10-1">--</span> µg/m³</span> <span id="mini-pm10-1" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>Temperatura:</strong> <span id="temp-1">--</span> °C</span><span></span></div>
+            <div class="metric-row"><span><strong>Humitat:</strong> <span id="hum-1">--</span> %</span><span></span></div>
+          </div>
+        </div>
+
+        <!-- CARD NODE 2 -->
+        <div class="card" id="card-2">
+          <h2>Node 2 - Pg. d'Olot, 92</h2>
+          <div id="semafor-2" class="semafor"></div>
+          <div id="status-2" class="status-text">--</div>
+          <div class="metrics">
+            <div class="metric-row"><span><strong>CO₂:</strong> <span id="co2-2">--</span> ppm</span> <span id="mini-co2-2" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>PM 1.0:</strong> <span id="pm1-2">--</span> µg/m³</span> <span id="mini-pm1-2" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>PM 2.5:</strong> <span id="pm25-2">--</span> µg/m³</span> <span id="mini-pm25-2" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>PM 10:</strong> <span id="pm10-2">--</span> µg/m³</span> <span id="mini-pm10-2" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>Temperatura:</strong> <span id="temp-2">--</span> °C</span><span></span></div>
+            <div class="metric-row"><span><strong>Humitat:</strong> <span id="hum-2">--</span> %</span><span></span></div>
+          </div>
+        </div>
+
+        <!-- CARD NODE 3 -->
+        <div class="card" id="card-3">
+          <h2>Node 3 - Estació de tren</h2>
+          <div id="semafor-3" class="semafor"></div>
+          <div id="status-3" class="status-text">--</div>
+          <div class="metrics">
+            <div class="metric-row"><span><strong>CO₂:</strong> <span id="co2-3">--</span> ppm</span> <span id="mini-co2-3" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>PM 1.0:</strong> <span id="pm1-3">--</span> µg/m³</span> <span id="mini-pm1-3" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>PM 2.5:</strong> <span id="pm25-3">--</span> µg/m³</span> <span id="mini-pm25-3" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>PM 10:</strong> <span id="pm10-3">--</span> µg/m³</span> <span id="mini-pm10-3" class="mini-semafor"></span></div>
+            <div class="metric-row"><span><strong>Temperatura:</strong> <span id="temp-3">--</span> °C</span><span></span></div>
+            <div class="metric-row"><span><strong>Humitat:</strong> <span id="hum-3">--</span> %</span><span></span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Treball de Recerca de Batxillerat (TdR) | Monitorització Ambiental de Girona
+  </footer>
+
+  <!-- Llibreria JS de Leaflet -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    // Coordenades i noms dels tres nodes
+    const nodesConfig = [
+      { id: 1, name: "Node 1 - C/ Joan Miró i Ferrà, 39", lat: 41.993052, lng: 2.802676 },
+      { id: 2, name: "Node 2 - Pg. d'Olot, 92", lat: 41.974739, lng: 2.803252 },
+      { id: 3, name: "Node 3 - Estació de tren", lat: 41.979058, lng: 2.818208 }
+    ];
+
+    // Valors inicials dels tres nodes
+    const dadesNodes = {
+      1: { co2: 520, pm1: 3, pm25: 5, pm10: 6, temp: 22.5, hum: 58.2 },
+      2: { co2: 627, pm1: 16, pm25: 24, pm10: 25, temp: 28.5, hum: 55.6 },
+      3: { co2: 602, pm1: 11, pm25: 16, pm10: 25, temp: 25.8, hum: 54.1 }
+    };
+
+    let map;
+    let markers = {};
+
+    // ICONA EN ALTA RESOLUCIÓ I FORMAT GRAN (42px x 68px)
+    const granIcona = L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconSize: [42, 68],
+      iconAnchor: [21, 68],
+      popupAnchor: [0, -64],
+      shadowSize: [68, 68],
+      shadowAnchor: [21, 68]
+    });
+
+    // 1. CRITERIS DE CLASSIFICACIÓ (OMS 2021 I ASHRAE)
+    function avaluarCO2(val) {
+      if (val <= 430) return 1;
+      if (val <= 550) return 2;
+      if (val <= 700) return 3;
+      return 4;
+    }
+
+    function avaluarPM1(val) {
+      if (val <= 5) return 1;
+      if (val <= 10) return 2;
+      if (val <= 20) return 3;
+      return 4;
+    }
+
+    function avaluarPM25(val) {
+      if (val <= 5) return 1;
+      if (val <= 15) return 2;
+      if (val <= 35) return 3;
+      return 4;
+    }
+
+    function avaluarPM10(val) {
+      if (val <= 15) return 1;
+      if (val <= 45) return 2;
+      if (val <= 75) return 3;
+      return 4;
+    }
+
+    function obtenirPropietatsNivell(nivell) {
+      if (nivell === 1) return { color: '#22c55e', text: "Bona qualitat de l'aire" };
+      if (nivell === 2) return { color: '#eab308', text: "Qualitat de l'aire moderada" };
+      if (nivell === 3) return { color: '#f97316', text: "Mala qualitat de l'aire" };
+      return { color: '#ef4444', text: "Molt mala qualitat de l'aire" };
+    }
+
+    // 2. INICIALITZACIÓ DEL MAPA OFICIAL AMB OPENSTREETMAP
+    function initMap() {
+      map = L.map('map');
+
+      // Capa oficial d'OpenStreetMap (inclou el disseny estàndard amb bandera de Leaflet)
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      const bounds = L.latLngBounds();
+      nodesConfig.forEach(node => {
+        const marker = L.marker([node.lat, node.lng], { icon: granIcona }).addTo(map);
+        markers[node.id] = marker;
+        bounds.extend([node.lat, node.lng]);
+      });
+      map.fitBounds(bounds, { padding: [60, 60] });
+
+      actualitzarTotsElsNodes();
+    }
+
+    // 3. CANVI DE PESTANYES
+    function canviarPagina(pagina) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+
+      document.getElementById(`page-${pagina}`).classList.add('active');
+      document.getElementById(`btn-${pagina}`).classList.add('active');
+
+      if (pagina === 'mapa' && map) {
+        setTimeout(() => {
+          map.invalidateSize();
+        }, 150);
+      }
+    }
+
+    // 4. ACTUALITZACIÓ DE DADES (TARGETA + POPUP)
+    function renderitzarNode(nodeId) {
+      const d = dadesNodes[nodeId];
+      const config = nodesConfig.find(n => n.id === nodeId);
+
+      document.getElementById(`co2-${nodeId}`).innerText = d.co2;
+      document.getElementById(`pm1-${nodeId}`).innerText = d.pm1;
+      document.getElementById(`pm25-${nodeId}`).innerText = d.pm25;
+      document.getElementById(`pm10-${nodeId}`).innerText = d.pm10;
+      document.getElementById(`temp-${nodeId}`).innerText = parseFloat(d.temp).toFixed(1);
+      document.getElementById(`hum-${nodeId}`).innerText = parseFloat(d.hum).toFixed(1);
+
+      const nCO2 = avaluarCO2(d.co2);
+      const nPM1 = avaluarPM1(d.pm1);
+      const nPM25 = avaluarPM25(d.pm25);
+      const nPM10 = avaluarPM10(d.pm10);
+
+      document.getElementById(`mini-co2-${nodeId}`).style.backgroundColor = obtenirPropietatsNivell(nCO2).color;
+      document.getElementById(`mini-pm1-${nodeId}`).style.backgroundColor = obtenirPropietatsNivell(nPM1).color;
+      document.getElementById(`mini-pm25-${nodeId}`).style.backgroundColor = obtenirPropietatsNivell(nPM25).color;
+      document.getElementById(`mini-pm10-${nodeId}`).style.backgroundColor = obtenirPropietatsNivell(nPM10).color;
+
+      const mitjana = (nCO2 + nPM1 + nPM25 + nPM10) / 4;
+      const nivellGlobal = Math.round(mitjana);
+      const propGlobal = obtenirPropietatsNivell(nivellGlobal);
+
+      const semafor = document.getElementById(`semafor-${nodeId}`);
+      const statusText = document.getElementById(`status-${nodeId}`);
+      semafor.style.backgroundColor = propGlobal.color;
+      statusText.innerText = propGlobal.text;
+
+      if (markers[nodeId]) {
+        markers[nodeId].bindPopup(`
+          <div style="font-size: 0.95rem; line-height: 1.5; min-width: 215px;">
+            <b style="color: #1e3a8a; font-size: 1.05rem;">${config.name}</b><br>
+            <div style="margin: 8px 0; padding: 5px 10px; background-color: ${propGlobal.color}; color: #ffffff; border-radius: 6px; font-weight: bold; text-align: center; text-shadow: 0 1px 2px rgba(0,0,0,0.25);">
+              ${propGlobal.text}
+            </div>
+            <div style="margin-top: 6px;">
+              <b>CO₂:</b> ${d.co2} ppm<br>
+              <b>PM 1.0:</b> ${d.pm1} µg/m³<br>
+              <b>PM 2.5:</b> ${d.pm25} µg/m³<br>
+              <b>PM 10:</b> ${d.pm10} µg/m³<br>
+              <b>Temperatura:</b> ${parseFloat(d.temp).toFixed(1)} °C<br>
+              <b>Humitat:</b> ${parseFloat(d.hum).toFixed(1)} %
+            </div>
+          </div>
+        `);
+      }
+    }
+
+    function actualitzarTotsElsNodes() {
+      renderitzarNode(1);
+      renderitzarNode(2);
+      renderitzarNode(3);
+    }
+
+    // 5. CONTROL DEL PANELL MANUAL
+    function canviarNodeSeleccionat() {
+      const id = parseInt(document.getElementById('sel-node').value);
+      const d = dadesNodes[id];
+
+      document.getElementById('input-co2').value = d.co2;
+      document.getElementById('input-pm1').value = d.pm1;
+      document.getElementById('input-pm25').value = d.pm25;
+      document.getElementById('input-pm10').value = d.pm10;
+      document.getElementById('input-temp').value = d.temp;
+      document.getElementById('input-hum').value = d.hum;
+    }
+
+    function guardarValors() {
+      const id = parseInt(document.getElementById('sel-node').value);
+
+      dadesNodes[id] = {
+        co2: parseFloat(document.getElementById('input-co2').value) || 0,
+        pm1: parseFloat(document.getElementById('input-pm1').value) || 0,
+        pm25: parseFloat(document.getElementById('input-pm25').value) || 0,
+        pm10: parseFloat(document.getElementById('input-pm10').value) || 0,
+        temp: parseFloat(document.getElementById('input-temp').value) || 0,
+        hum: parseFloat(document.getElementById('input-hum').value) || 0
+      };
+
+      renderitzarNode(id);
+    }
+
+    function carregarPreset(tipus) {
+      if (tipus === 'net') {
+        document.getElementById('input-co2').value = 415;
+        document.getElementById('input-pm1').value = 2;
+        document.getElementById('input-pm25').value = 4;
+        document.getElementById('input-pm10').value = 7;
+        document.getElementById('input-temp').value = 21.0;
+        document.getElementById('input-hum').value = 52.0;
+      } else if (tipus === 'pic') {
+        document.getElementById('input-co2').value = 650;
+        document.getElementById('input-pm1').value = 16;
+        document.getElementById('input-pm25').value = 26;
+        document.getElementById('input-pm10').value = 32;
+        document.getElementById('input-temp').value = 28.5;
+        document.getElementById('input-hum').value = 58.0;
+      } else if (tipus === 'critic') {
+        document.getElementById('input-co2').value = 780;
+        document.getElementById('input-pm1').value = 24;
+        document.getElementById('input-pm25').value = 42;
+        document.getElementById('input-pm10').value = 85;
+        document.getElementById('input-temp').value = 31.0;
+        document.getElementById('input-hum').value = 68.0;
+      }
+      guardarValors();
+    }
+
+    // Control del mode de captura
+    function activarModeCaptura() {
+      document.getElementById('panell-control').style.display = 'none';
+      document.getElementById('btn-mostrar-panell').style.display = 'block';
+      if (map) setTimeout(() => map.invalidateSize(), 150);
+    }
+
+    function sortirModeCaptura() {
+      document.getElementById('panell-control').style.display = 'block';
+      document.getElementById('btn-mostrar-panell').style.display = 'none';
+      if (map) setTimeout(() => map.invalidateSize(), 150);
+    }
+
+    window.onload = () => {
+      initMap();
+    };
+  </script>
+</body>
+</html>
